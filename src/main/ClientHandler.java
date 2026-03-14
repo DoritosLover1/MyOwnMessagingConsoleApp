@@ -53,7 +53,7 @@ public class ClientHandler extends Thread {
             if (username != null) {
 
                 Storage.getClients().remove(username);
-
+                
                 broadcast(new CustomPacket(
                         "SERVER",
                         "ALL",
@@ -192,10 +192,10 @@ public class ClientHandler extends Thread {
     }
 
     private void broadcast(CustomPacket packet) {
-
+    	
         for (ClientHandler client : Storage.getClients().values()) {
-
-            client.sendPacket(packet);
+        	if(!client.username.equals(username))
+        		client.sendPacket(packet);
         }
     }
 }
