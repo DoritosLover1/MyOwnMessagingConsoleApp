@@ -2,6 +2,8 @@ package main;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
+
 import packet.CustomPacket;
 import packet.CustomPacketType;
 
@@ -17,68 +19,46 @@ public class ClientHandler extends Thread {
     }
 
     public void run() {
-
         try {
-
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
 
             String raw;
-
             while ((raw = in.readLine()) != null) {
-
                 try {
-
                     CustomPacket packet = CustomPacket.parser(raw);
-
                     handlePacket(packet);
-
                 } catch (Exception e) {
-
                     sendPacket(new CustomPacket(
-                            "SERVER",
-                            "UNKNOWN",
+                            "SERVER", "UNKNOWN",
                             CustomPacketType.ERROR,
                             "Invalid packet format"
                     ));
                 }
             }
-
         } catch (Exception e) {
-
             System.out.println("Connection closed: " + username);
-
         } finally {
-
             if (username != null) {
-
                 Storage.getClients().remove(username);
-                
                 broadcast(new CustomPacket(
-                        "SERVER",
-                        "ALL",
+                        "SERVER", "ALL",
                         CustomPacketType.INFO,
                         username + " left chat"
                 ));
             }
-
-            try {
-                socket.close();
-            } catch (Exception ignored) {}
+            try { socket.close(); } catch (Exception ignored) {}
         }
     }
 
     private void handlePacket(CustomPacket packet) {
 
         if (username == null && packet.getType() != CustomPacketType.LOGIN) {
-
             sendPacket(new CustomPacket(
-                    "SERVER",
-                    packet.getFrom(),
+                    "SERVER", packet.getFrom(),
                     CustomPacketType.ERROR,
                     "You must LOGIN first"
             ));
-
             return;
         }
 
@@ -87,21 +67,17 @@ public class ClientHandler extends Thread {
             case LOGIN:
 
                 if (username != null) {
-
                     sendPacket(new CustomPacket(
-                            "SERVER",
-                            packet.getFrom(),
+                            "SERVER", packet.getFrom(),
                             CustomPacketType.ERROR,
                             "Already logged in"
                     ));
                     return;
                 }
-
+                
                 if (Storage.getClients().containsKey(packet.getFrom())) {
-
                     sendPacket(new CustomPacket(
-                            "SERVER",
-                            packet.getFrom(),
+                            "SERVER", packet.getFrom(),
                             CustomPacketType.ERROR,
                             "Username already taken"
                     ));
@@ -109,17 +85,9 @@ public class ClientHandler extends Thread {
                 }
 
                 username = packet.getFrom();
-
                 Storage.getClients().put(username, this);
 
                 System.out.println(username + " connected");
-
-                broadcast(new CustomPacket(
-                        "SERVER",
-                        "ALL",
-                        CustomPacketType.INFO,
-                        username + " joined chat"
-                ));
 
                 break;
 
@@ -161,7 +129,9 @@ public class ClientHandler extends Thread {
                 break;
 
             case LOGOUT:
-
+            	// BURADA ÇIKIŞ YAPINCA SADECE ARKADAŞLARININ BİLGİLENDİRMESİNİ YAPACAĞIZ
+            	// BURADA AYRICA CALLBACK FONKSİYON OLMALI O ÜSTTE YAZDIĞIM OLAY.
+            	// BİR CALLBACK İLE BUNU SAĞLARIZ
                 Storage.getClients().remove(username);
 
                 broadcast(new CustomPacket(
@@ -172,6 +142,42 @@ public class ClientHandler extends Thread {
                 ));
 
                 username = null;
+
+                try { socket.close(); } catch (Exception ignored) {}
+
+                break;
+
+            case ADD_FRIEND:
+                String friendName = packet.getMessage();
+
+                if (!Storage.getClients().containsKey(friendName)) {
+                    sendPacket(new CustomPacket(
+                            "SERVER", username,
+                            CustomPacketType.ERROR,
+                            "User not found"
+                    ));
+                    return;
+                }
+
+                Storage.addFriend(username, friendName);
+                Storage.addFriend(friendName, username);
+
+                String senderList = String.join(",", Storage.getFriends(username));
+                sendPacket(new CustomPacket(
+                        "SERVER", username,
+                        CustomPacketType.USER_LIST,
+                        senderList
+                ));
+
+                ClientHandler friendTarget = Storage.getClients().get(friendName);
+                if (friendTarget != null) {
+                    String targetList = String.join(",", Storage.getFriends(friendName));
+                    friendTarget.sendPacket(new CustomPacket(
+                            "SERVER", friendName,
+                            CustomPacketType.REFRESH_FRIENDS_LIST,
+                            targetList
+                    ));
+                }
 
                 break;
 
@@ -187,15 +193,14 @@ public class ClientHandler extends Thread {
     }
 
     public void sendPacket(CustomPacket packet) {
-
         out.println(packet.serializePacket());
     }
 
     private void broadcast(CustomPacket packet) {
-    	
         for (ClientHandler client : Storage.getClients().values()) {
-        	if(!client.username.equals(username))
-        		client.sendPacket(packet);
+            if (client.username != null) {
+                client.sendPacket(packet);
+            }
         }
     }
 }
