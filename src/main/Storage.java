@@ -23,4 +23,8 @@ public final class Storage {
     public static ArrayList<String> getFriends(String user) {
     	return friends.computeIfAbsent(user, k -> new ArrayList<>());
     }
+    
+	public static boolean isNicknameTaken(String nickname) {
+		return clients.containsKey(nickname);
+	}
 }

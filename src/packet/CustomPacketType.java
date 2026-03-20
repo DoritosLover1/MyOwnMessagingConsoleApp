@@ -3,6 +3,8 @@ package packet;
 public enum CustomPacketType {
 
     LOGIN,
+    LOGIN_USERNAME_ERROR,
+    LOGIN_USERNAME_AVAILABLE,
     LOGOUT,
 
     SEND_MESSAGE,

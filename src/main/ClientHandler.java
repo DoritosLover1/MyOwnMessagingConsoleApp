@@ -64,32 +64,27 @@ public class ClientHandler extends Thread {
 
         switch (packet.getType()) {
 
-            case LOGIN:
-
-                if (username != null) {
-                    sendPacket(new CustomPacket(
-                            "SERVER", packet.getFrom(),
-                            CustomPacketType.ERROR,
-                            "Already logged in"
-                    ));
-                    return;
-                }
-                
-                if (Storage.getClients().containsKey(packet.getFrom())) {
-                    sendPacket(new CustomPacket(
-                            "SERVER", packet.getFrom(),
-                            CustomPacketType.ERROR,
-                            "Username already taken"
-                    ));
-                    return;
-                }
-
-                username = packet.getFrom();
-                Storage.getClients().put(username, this);
-
-                System.out.println(username + " connected");
-
-                break;
+	        case LOGIN:
+	            String requestedName = packet.getFrom();
+	            
+	            if (Storage.isNicknameTaken(requestedName)) {
+	            	System.out.println("Username taken, sending error to: " + requestedName);
+	                sendPacket(new CustomPacket("SERVER", requestedName, CustomPacketType.LOGIN_USERNAME_ERROR,
+	                        "Username already taken"));
+	                try { socket.close(); } catch (Exception ignored) {}
+	                return;
+	            }
+	            
+	            username = requestedName;
+	            Storage.getClients().put(username, this);
+	            System.out.println(username + " connected");
+	            
+	            sendPacket(new CustomPacket(
+	                    "SERVER", username,
+	                    CustomPacketType.INFO,
+	                    "Login successful"
+	            ));
+	            break;
 
             case SEND_MESSAGE:
 
