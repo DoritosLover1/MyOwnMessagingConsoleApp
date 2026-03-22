@@ -141,6 +141,8 @@ public class ClientHandler extends Thread {
                             CustomPacketType.REFRESH_FRIENDS_LIST,
                             String.join(",", updatedList)
                         ));
+                        Storage.getFriends(friend).remove(username);
+                        Storage.getFriends(username).clear();
                     }
                 });
                 try { socket.close(); } catch (Exception ignored) {}
