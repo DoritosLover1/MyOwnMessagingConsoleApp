@@ -3,6 +3,8 @@ package main;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import packet.CustomPacket;
 import packet.CustomPacketType;
@@ -124,22 +126,24 @@ public class ClientHandler extends Thread {
                 break;
 
             case LOGOUT:
-            	// BURADA ÇIKIŞ YAPINCA SADECE ARKADAŞLARININ BİLGİLENDİRMESİNİ YAPACAĞIZ
-            	// BURADA AYRICA CALLBACK FONKSİYON OLMALI O ÜSTTE YAZDIĞIM OLAY.
-            	// BİR CALLBACK İLE BUNU SAĞLARIZ
                 Storage.getClients().remove(username);
+                Storage.getFriends(username).forEach(friend -> {
+                    ClientHandler friendTarget = Storage.getClients().get(friend);
+                    if (friendTarget != null) {
+                        List<String> updatedList = Storage.getFriends(friend)
+                            .stream()
+                            .filter(f -> !f.equals(username))
+                            .collect(Collectors.toList());
 
-                broadcast(new CustomPacket(
-                        "SERVER",
-                        "ALL",
-                        CustomPacketType.INFO,
-                        username + " logged out"
-                ));
-
-                username = null;
-
+                        friendTarget.sendPacket(new CustomPacket(
+                            "SERVER",
+                            friendTarget.username,
+                            CustomPacketType.REFRESH_FRIENDS_LIST,
+                            String.join(",", updatedList)
+                        ));
+                    }
+                });
                 try { socket.close(); } catch (Exception ignored) {}
-
                 break;
 
             case ADD_FRIEND:
