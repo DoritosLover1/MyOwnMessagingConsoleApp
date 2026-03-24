@@ -20,5 +20,7 @@ public enum CustomPacketType {
     ERROR,
     
     ADD_FRIEND,
-    REFRESH_FRIENDS_LIST
+    REFRESH_FRIENDS_LIST, 
+    
+    PUBLIC_KEY
 }

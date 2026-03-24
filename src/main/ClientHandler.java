@@ -87,7 +87,27 @@ public class ClientHandler extends Thread {
 	                    "Login successful"
 	            ));
 	            break;
+	        case PUBLIC_KEY:
 
+	            ClientHandler keyTarget = Storage.getClients().get(packet.getTo());
+
+	            if (keyTarget != null) {
+	                keyTarget.sendPacket(new CustomPacket(
+	                        packet.getFrom(),
+	                        packet.getTo(),
+	                        CustomPacketType.PUBLIC_KEY,
+	                        packet.getMessage()
+	                ));
+	            } else {
+	                sendPacket(new CustomPacket(
+	                        "SERVER",
+	                        username,
+	                        CustomPacketType.ERROR,
+	                        "User not found for key exchange"
+	                ));
+	            }
+
+	            break;
             case SEND_MESSAGE:
 
                 if (packet.getTo().equalsIgnoreCase("ALL")) {
